@@ -102,17 +102,10 @@ Explanation of the Packet Class Implementation
 The Packet class represents a network packet, encapsulating its headers, payload, and other metadata. This implementation focuses on managing the packet's lifecycle, including dynamic memory allocation and providing accessors for its data.
 Detailed Code Explanation
 
-    Constructor
+   
+Purpose of constructor: Initializes a Packet instance with the provided parameters.
 
-    Packet::Packet(UT::PacketType type, TcpHeader *tcp, DataLinkHeader *dataLink, 
-                   const string &dataPayload, int seqNum, int waitCycles, int total)
-        : packetType(type), tcpHeader(tcp), dataLinkHeader(dataLink), 
-          payload(dataPayload), sequenceNumber(seqNum), 
-          waitingCycles(waitCycles), totalCycles(total) {}
-
-        Purpose: Initializes a Packet instance with the provided parameters.
-
-        Parameters:
+Parameters:
             UT::PacketType type: Defines the type of the packet (e.g., Data or Control).
             TcpHeader *tcp: A pointer to the TCP header associated with this packet.
             DataLinkHeader *dataLink: A pointer to the data link layer header.
@@ -139,48 +132,22 @@ Detailed Code Explanation
             ipHeader and bgpHeader are commented out, indicating they are not used in this configuration.
         Safety: Ensure that delete is only called on dynamically allocated objects to prevent undefined behavior.
 
-    Getters
-        Purpose: Provide access to the private member variables of the class.
-        Examples:
+Getters
+purpose: Provide access to the private member variables of the class.
 
-        UT::PacketType Packet::getPacketType() const { return packetType; }
-        TcpHeader *Packet::getTCPHeader() const { return tcpHeader; }
-        DataLinkHeader *Packet::getDataLinkHeader() const { return dataLinkHeader; }
-        const string &Packet::getPayload() const { return payload; }
-        int Packet::getSequenceNumber() const { return sequenceNumber; }
-        int Packet::getWaitingCycles() const { return waitingCycles; }
-        int Packet::getTotalCycles() const { return totalCycles; }
-        const std::vector<string> &Packet::getPath() const { return path; }
 
-            These methods return values or pointers to the class's members, allowing controlled read access.
-            The const qualifier ensures that the returned references or pointers cannot modify the original member variables.
+These methods return values or pointers to the class's members, allowing controlled read access.
+The const qualifier ensures that the returned references or pointers cannot modify the original member variables.
 
-    Setters
-        Purpose: Allow modification of specific member variables.
-        Examples:
+Setters
+Purpose: Allow modification of specific member variables.
 
-        void Packet::setPath(const std::vector<string> &hops) {
-            path = hops;
-        }
+setPath: Sets the entire path of the packet (a list of hops).
+addHop: Appends a single hop (e.g., a node or device) to the path.
 
-        void Packet::addHop(const std::string& hop) {
-            path.push_back(hop);
-        }
 
-            setPath: Sets the entire path of the packet (a list of hops).
-            addHop: Appends a single hop (e.g., a node or device) to the path.
+        
 
-    Commented Code
-        Portions of the code are commented out, indicating unused features:
-
-        // delete ipHeader;
-        // delete bgpHeader;
-        // IPHeader *Packet::getIPHeader() const { return ipHeader; }
-        // BGPHeader *Packet::getBGPHeader() const { return bgpHeader; }
-
-        These comments suggest:
-            IPHeader and BGPHeader support is not implemented or needed for the current use case.
-            The design can be extended to include these headers when necessary.
 
 Class Responsibilities
 
