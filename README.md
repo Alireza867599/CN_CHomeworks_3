@@ -91,8 +91,7 @@ The const qualifier ensures that the returned references or pointers cannot modi
 
 Class Responsibilities
 
-The Packet class is responsible for:
-Encapsulation: Encapsulates data related to a network packet, such as headers, payload, and metadata.
+The Packet class is responsible for: Encapsulation: Encapsulates data related to a network packet, such as headers, payload, and metadata.
 Memory Management: Ensures proper handling of dynamically allocated resources.
 Flexibility: Provides accessors (getters and setters) to interact with its data in a controlled manner.
 Path Tracking: Tracks the path taken by the packet as a series of hops.
