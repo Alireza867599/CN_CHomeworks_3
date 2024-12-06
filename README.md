@@ -1,4 +1,4 @@
-# CN_CHomeworks_3          َAlirezaRamezani 810102159  , Ali Khanmohammadi 810199578
+# CN_CHomeworks_3          AlirezaRamezani 810102159  , Ali Khanmohammadi 810199578
 this project contain some Classes : DatalinkHeader , TcpHeader , MacAddressGenerator , Packet , Datagenerator , EventsCoordinator , TcpHeader and other Classes . 
 explain codes of DataGenerator Class
 
