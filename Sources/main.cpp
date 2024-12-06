@@ -5,7 +5,12 @@
 #include <string>
 #include <unordered_set>
 #include "datagenerator.h"
+#include "packet.h"
+#include "tcpheader.h"
+#include "datalinkheader.h"
 #include "macaddressgenerator.h"
+#include "eventcoordinator.h"
+#include <QCoreApplication>
 using namespace std;
 
 
@@ -15,7 +20,7 @@ using namespace std;
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDebug>
-
+#include "simulationhandler.h"
 
 int main(int argc, char *argv[])
 {
@@ -31,7 +36,6 @@ int main(int argc, char *argv[])
         QByteArray fileData = file.readAll();
         file.close();
 
-        // Step 2: Parse the JSON content
         QJsonDocument doc = QJsonDocument::fromJson(fileData);
         if (doc.isNull()) {
             qDebug() << "Failed to parse JSON.";
@@ -116,18 +120,16 @@ int main(int argc, char *argv[])
                 }
             }
         }
-
         GenerateMACAddress macGenerator;
 
-        // Generate and display 5 unique MAC addresses
         for (int i = 0; i < 10; ++i) {
             string mac = macGenerator.generateUniqueMAC();
             cout << "Generated MAC Address"<<i<<"\t"<< mac << endl;
         }
 
-        double shape = 2.0;  // Shape parameter (alpha)
-        double scale = 1.0;  // Scale parameter (xm)
-        double rate = 10.0;  // Events per second
+        double shape = 2.0;
+        double scale = 1.0;
+        double rate = 10.0;
 
         DataGenerator generator(shape, scale, rate);
 
@@ -138,10 +140,78 @@ int main(int argc, char *argv[])
         for (double num : data) {
             std::cout << num << " ";
         }
-        std::cout << std::endl;
+
+        // Create DataLinkHeader instance and set MAC addresses
+        DataLinkHeader dataLinkHeader;
+        dataLinkHeader.setSourceMAC("00:14:22:01:23:45");
+        dataLinkHeader.setDestinationMAC("00:14:22:67:89:AB");
+
+        cout << "Source MAC: " << dataLinkHeader.getSourceMAC() << endl;
+        cout << "Destination MAC: " << dataLinkHeader.getDestinationMAC() << endl;
+
+        TcpHeader tcpHeader;
+        tcpHeader.setSourcePort(8080);
+        tcpHeader.setDestinationPort(80);
+        tcpHeader.setSequenceNumber(123456);
+        tcpHeader.setAcknowledgmentNumber(654321);
+        tcpHeader.setFlags(true, true, false, false, true, false);
+        tcpHeader.setWindowSize(1024);
+        tcpHeader.setChecksum(0xFFFF);
+        tcpHeader.setUrgentPointer(0);
+
+        cout << "Source Port: " << tcpHeader.getSourcePort() << endl;
+        cout << "Destination Port: " << tcpHeader.getDestinationPort() << endl;
+
+        // Create IPHeader instance and set values
+        // IPHeader ipHeader(UT::IPVersion::IPv4, "192.168.1.1", "192.168.1.2");
+        // cout << "Source IP: " << ipHeader.sourceIP << endl;
+        // cout << "Destination IP: " << ipHeader.destinationIP << endl;
+
+        // Create Packet instance
+        Packet packet(UT::PacketType::Data,  &tcpHeader, &dataLinkHeader, "Sample Payload", 1, 5, 10);
+
+        cout << "Packet Type: " << (packet.getPacketType() == UT::PacketType::Data ? "Data" : "Control") << endl;
+        cout << "Payload: " << packet.getPayload() << endl;
+        cout << "Sequence Number: " << packet.getSequenceNumber() << endl;
+
+        // Optional: Set and get path in the packet
+        vector<string> hops = {"192.168.1.3", "192.168.1.4"};
+        packet.setPath(hops);
+        cout << "Packet Path: ";
+        for (const auto& hop : packet.getPath()) {
+            cout << hop << " ";
+        }
+        cout << endl;
+
+        // Create a SimulationHandler to handle events
+        SimulationHandler handler;
+
+        // Get the singleton instance of EventsCoordinator
+        EventsCoordinator* coordinator = EventsCoordinator::instance();
+
+        // Connect signals to handler slots
+        QObject::connect(coordinator, &EventsCoordinator::tick, &handler, &SimulationHandler::onTick);
+        QObject::connect(coordinator, &EventsCoordinator::simulationStarted, &handler, &SimulationHandler::onSimulationStarted);
+        QObject::connect(coordinator, &EventsCoordinator::simulationStopped, &handler, &SimulationHandler::onSimulationStopped);
+        QObject::connect(coordinator, &EventsCoordinator::dataGenerated, &handler, &SimulationHandler::onDataGenerated);
+
+
+        coordinator->startSimulation(5000, &generator);
+
+        QTimer::singleShot(6000, [&]() {
+            EventsCoordinator::release();
+            return a.quit();
+        });
+
+
+
+
+
+
 
         return a.exec();
     }
+
 
 
 
