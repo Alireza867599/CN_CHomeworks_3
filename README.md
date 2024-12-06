@@ -273,15 +273,15 @@ The design of these three classes is such that they maintain simplicity while of
 class of SimulationHandler :
 Key Features
 
-    Event-Driven: Relies on Qt's signal-slot mechanism for handling simulation events.
-    Modularity: Encapsulates simulation event handling, making it easy to modify or extend.
-    Extensibility: Can be customized to perform more sophisticated actions, such as:
-        Collecting and analyzing data.
-        Interfacing with external systems.
+Event-Driven: Relies on Qt's signal-slot mechanism for handling simulation events.
+Modularity: Encapsulates simulation event handling, making it easy to modify or extend.
+Extensibility: Can be customized to perform more sophisticated actions, such as:
+Collecting and analyzing data.
+Interfacing with external systems.
 
 Example Usage in a Simulation
 
-    Simulation Start: Logs the start event and initializes required states.
-    Periodic Tick: Updates internal logic or performs periodic tasks.
-    Data Generation: Captures and processes data values as they are generated.
-    Simulation End: Cleans up and finalizes the simulation process.
+Simulation Start: Logs the start event and initializes required states.
+Periodic Tick: Updates internal logic or performs periodic tasks.
+Data Generation: Captures and processes data values as they are generated.
+Simulation End: Cleans up and finalizes the simulation process.
