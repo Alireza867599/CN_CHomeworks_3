@@ -114,19 +114,12 @@ Parameters:
             int waitCycles: The number of cycles the packet waits before transmission.
             int total: The total number of cycles for packet processing.
 
-        Initialization:
-            Assigns all provided parameters to the corresponding member variables.
-            Sets default values for omitted parameters (e.g., bgpHeader is not used here).
+Initialization:
+        Assigns all provided parameters to the corresponding member variables.
+        Sets default values for omitted parameters (e.g., bgpHeader is not used here).
 
-    Destructor
 
-    Packet::~Packet()
-    {
-        delete tcpHeader;
-        delete dataLinkHeader;
-    }
-
-        Purpose: Cleans up dynamically allocated memory to avoid memory leaks.
+Purpose of deconstructor: Cleans up dynamically allocated memory to avoid memory leaks.
         Behavior:
             Deletes tcpHeader and dataLinkHeader, which were allocated dynamically.
             ipHeader and bgpHeader are commented out, indicating they are not used in this configuration.
