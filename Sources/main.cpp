@@ -125,7 +125,6 @@ int main(int argc, char *argv[])
             cout << "Generated MAC Address"<<i<<"\t"<< mac << endl;
         }
 
-        // Example usage of DataGenerator
         double shape = 2.0;  // Shape parameter (alpha)
         double scale = 1.0;  // Scale parameter (xm)
         double rate = 10.0;  // Events per second
