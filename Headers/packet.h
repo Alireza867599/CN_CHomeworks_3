@@ -5,29 +5,13 @@ using namespace std;
 
 #include "datalinkheader.h"
 #include "tcpheader.h"
+#include "ip.h"
 #include "globals.h"
 #include <vector>
 #include <string>
 
-// class IPHeader
-// {
-// public:
-//     UT::IPVersion ipVersion;
-//     std::string sourceIP;
-//     std::string destinationIP;
-
-//     IPHeader(UT::IPVersion version, const std::string& src, const std::string& dest)
-//         : ipVersion(version), sourceIP(src), destinationIP(dest) {}
-// };
 
 
-// class BGPHeader
-// {
-// public:
-//     std::string bgpInfo;
-
-//     BGPHeader(const std::string& info) : bgpInfo(info) {}
-// };
 
 
 
@@ -36,24 +20,24 @@ class Packet
 private:
     UT::PacketType packetType;
     UT::PacketControlType controlType;
-    // IPHeader* ipHeader;
+    bool isControlPacket;
+    IP<UT::IPVersion::IPv4>* ipHeader;
     TcpHeader* tcpHeader;
-    // BGPHeader* bgpHeader;
     DataLinkHeader* dataLinkHeader;
     std::string payload;
     int sequenceNumber;
     int waitingCycles;
     int totalCycles;
     std::vector<std::string> path;
+    bool dropped;
 
 public:
-    Packet(UT::PacketType type , TcpHeader* tcp, DataLinkHeader* dataLink,
-           const std::string& dataPayload, int seqNum, int waitCycles, int total);
+    Packet(UT::PacketType type, IP<UT::IPVersion::IPv4>* ip, TcpHeader* tcp, DataLinkHeader* dataLink, const std::string& dataPayload, int seqNum, int waitCycles, int total);
 
-    // For control packets with BGP Header
-    Packet(UT::PacketControlType controlType, DataLinkHeader* dataLink,
+
+    Packet(UT::PacketControlType controlType ,  IP<UT::IPVersion::IPv4>* ipHeader, DataLinkHeader* dataLink,
            int seqNum, int waitCycles, int total)
-        : packetType(UT::PacketType::Control), controlType(controlType),
+        : packetType(UT::PacketType::Control),controlType(controlType),ipHeader(ipHeader),
         tcpHeader(nullptr), dataLinkHeader(dataLink), sequenceNumber(seqNum),
         waitingCycles(waitCycles), totalCycles(total) {}
 
@@ -62,9 +46,7 @@ public:
     // Getters and Setters
     UT::PacketType getPacketType() const;
     UT::PacketControlType getControlType() const;
-    // IPHeader* getIPHeader() const;
     TcpHeader* getTCPHeader() const;
-    // BGPHeader* getBGPHeader() const;
     DataLinkHeader* getDataLinkHeader() const;
     const std::string& getPayload() const;
     int getSequenceNumber() const;
@@ -74,6 +56,12 @@ public:
 
     void setPath(const std::vector<std::string>& hops);
     void addHop(const std::string& hop);
+    IP<UT::IPVersion::IPv4> *getIpHeader() const;
+    void setIpHeader(IP<UT::IPVersion::IPv4> *newIpHeader);
+    bool getIsControlPacket() const;
+    void setIsControlPacket(bool newIsControlPacket);
+    bool getDropped() const;
+    void setDropped(bool newDropped);
 };
 
 #endif // PACKET_H
