@@ -1,16 +1,44 @@
 #include "packet.h"
 
 
-Packet::Packet(UT::PacketType type, /*IPHeader *ip,*/ TcpHeader *tcp, DataLinkHeader *dataLink, const string &dataPayload, int seqNum, int waitCycles, int total)
-    : packetType(type), /*ipHeader(ip),*/ tcpHeader(tcp), /*bgpHeader(nullptr),*/
-    dataLinkHeader(dataLink), payload(dataPayload), sequenceNumber(seqNum),
-    waitingCycles(waitCycles), totalCycles(total) {}
+IP<UT::IPVersion::IPv4> *Packet::getIpHeader() const
+{
+    return ipHeader;
+}
+
+void Packet::setIpHeader(IP<UT::IPVersion::IPv4> *newIpHeader)
+{
+    ipHeader = newIpHeader;
+}
+bool Packet::getIsControlPacket() const
+{
+    return isControlPacket;
+}
+
+void Packet::setIsControlPacket(bool newIsControlPacket)
+{
+    isControlPacket = newIsControlPacket;
+}
+
+bool Packet::getDropped() const
+{
+    return dropped;
+}
+
+void Packet::setDropped(bool newDropped)
+{
+    dropped = newDropped;
+}
+
+Packet::Packet(UT::PacketType type, IP<UT::IPVersion::IPv4>* ip, TcpHeader* tcp, DataLinkHeader* dataLink, const std::string& dataPayload, int seqNum, int waitCycles, int total)
+    : packetType(type), controlType(UT::PacketControlType::DHCPRequest), ipHeader(ip),
+    tcpHeader(tcp), dataLinkHeader(dataLink), payload(dataPayload),
+    sequenceNumber(seqNum), waitingCycles(waitCycles), totalCycles(total) {}
 
 Packet::~Packet()
 {
-    // delete ipHeader;
+    delete ipHeader;
     delete tcpHeader;
-    // delete bgpHeader;
     delete dataLinkHeader;
 }
 
@@ -18,11 +46,9 @@ UT::PacketType Packet::getPacketType() const { return packetType; }
 
 UT::PacketControlType Packet::getControlType() const { return controlType; }
 
-// IPHeader *Packet::getIPHeader() const { return ipHeader; }
 
 TcpHeader *Packet::getTCPHeader() const { return tcpHeader; }
 
-// BGPHeader *Packet::getBGPHeader() const { return bgpHeader; }
 
 DataLinkHeader *Packet::getDataLinkHeader() const { return dataLinkHeader; }
 
