@@ -4,12 +4,29 @@
 #include <QThread>
 GenerateMACAddress macaddress;
 
-PC::PC(const std::string& ip, int port, double shape, double scale, double rate, unsigned int seed)
-    : Node(macaddress.generateUniqueMAC()),
-    dataGenerator(shape, scale, rate, seed),
-    ipAddress(ip),
-    port(port) {}
 
+std::string PC::getIpAddress() const
+{
+    return ipAddress;
+}
+
+std::string PC::getMacaddress() const
+{
+    return macaddress;
+}
+
+void PC::setMacaddress(const std::string &newMacaddress)
+{
+    macaddress = newMacaddress;
+}
+
+PC::PC() : dataGenerator(42,1.1, 1.9, 10), PCID(0) { // Provide a valid argument for DataGenerator
+    // Default initialization
+}
+// Another constructor example with parameters
+PC::PC(int id ) : dataGenerator(42,1.1, 1.9, 10), PCID(id) { // Example initialization
+    // Custom initialization
+}
 void PC::setOtherIPs(const std::vector<std::string>& ips) {
     otherIPs = ips;
 }
@@ -46,9 +63,7 @@ void PC::generateAndSendPackets(int numPackets, const std::string& targetIP, Rou
     }
 }
 
-bool PC::connectToRouter(Router* router) {
-    return router->connectUser(port, this);
-}
+
 
 void PC::processIncomingPacket(const Packet& packet) {
     QMutexLocker locker(&mutex); // Lock mutex for thread-safe output
@@ -67,5 +82,34 @@ void PC::retransmitPacket(int sequenceNumber, Router* gateway) {
         gateway->sendPacket(*sentPackets[sequenceNumber]);
     } else {
         std::cout << "Packet with sequence number " << sequenceNumber << " not found for retransmission.\n";
+    }
+}
+
+void PC::addPort(std::shared_ptr<Port> port) {
+    m_ports.push_back(port);
+}
+
+std::vector<std::shared_ptr<Port>> PC::getPorts() const {
+    return m_ports; // Return the list of ports
+}
+bool PC::connectToRouter(Router* router) {
+    if (!router) {
+        return false;
+    }
+    std::cout << "PC " << PCID << " connecting to router " << router->getId() << std::endl;
+    return true;
+}
+void PC::requestIP(std::shared_ptr<Router> dhcpServer) {
+    if (!ipAddress.empty()) {
+        std::cout << "PC " << PCID << " already has IP: " << ipAddress << "\n";
+        return;
+    }
+
+    std::string assignedIP = dhcpServer->processDhcpDiscover(PCID, macAddress);
+    if (!assignedIP.empty()) {
+        setIPAddress(assignedIP);  // Ensure the IP is set correctly
+        std::cout << "PC " << PCID << " assigned IP: " << assignedIP << " via DHCP.\n";
+    } else {
+        std::cout << "Failed to assign IP to PC " << PCID << "\n";
     }
 }
