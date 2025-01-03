@@ -1,22 +1,40 @@
 #include "router.h"
-
-IPv4_t ipv4Address(QString("192.168.2.1"));
-
-TcpHeader* tcpHeader = new TcpHeader();
-DataLinkHeader* dataLinkHeader = new DataLinkHeader();
-
-std::string payload = "Example payload";
-int sequenceNumber = 1;
-int waitingCycles = 10;
-int totalCycles = 100;
+#include <algorithm>
+#include "dhcpserver.h"
 
 
+bool Router::getIsDhcpEnabled() const
+{
+    return isDhcpEnabled;
+}
 
+void Router::setIsDhcpEnabled(bool newIsDhcpEnabled)
+{
+    isDhcpEnabled = newIsDhcpEnabled;
+}
 
-Router::Router(int id, const std::string &ipAddress, const std::string &macAddress)
-    : Node(macAddress), id(id), ipAddress(ipAddress), isDhcpEnabled(false), isGatewayAS(false), isGatewayUser(false) {}
+std::string Router::getMacaddress() const
+{
+    return macaddress;
+}
 
-// Routing Table Methods
+void Router::setMacaddress(const std::string &newMacaddress)
+{
+    macaddress = newMacaddress;
+}
+
+Router::Router(int id , const std::string& ipAddress,const std::string& macaddress, int asid)
+    : ipAddress(ipAddress) ,routerId(id) , asId(asid) , macaddress(macaddress)  {}
+
+int Router::getId() const {
+    return routerId;
+}
+
+int Router::getAsId() const
+{
+    return asId;
+}
+
 void Router::addRoutingTableEntry(const RoutingTableEntry &entry) {
     routingTable.push_back(entry);
 }
@@ -30,7 +48,7 @@ void Router::removeRoutingTableEntry(const std::string &destinationNetwork) {
 }
 
 void Router::displayRoutingTable() const {
-    std::cout << "Routing Table for Router ID: " << id << "\n";
+    std::cout << "Routing Table for Router ID: " << routerId << "\n";
     for (const auto &entry : routingTable) {
         std::cout << "Dest: " << entry.destinationNetwork
                   << ", Subnet: " << entry.subnetMask
@@ -41,7 +59,6 @@ void Router::displayRoutingTable() const {
 }
 
 RoutingTableEntry Router::findBestRoute(const std::string &destination) const {
-    // Simplified logic to find a route
     for (const auto &entry : routingTable) {
         if (destination.find(entry.destinationNetwork) != std::string::npos) {
             return entry;
@@ -50,7 +67,6 @@ RoutingTableEntry Router::findBestRoute(const std::string &destination) const {
     throw std::runtime_error("Route not found");
 }
 
-// Buffer Management Methods
 void Router::setBufferPolicy(BufferManagementPolicy::Method method) {
     bufferPolicy.method = method;
 }
@@ -61,21 +77,16 @@ void Router::sendPacketToBuffer(const Packet &packet) {
     case BufferManagementPolicy::FIFO:
         if (fifoBuffer.size() < BUFFER_CAPACITY) {
             fifoBuffer.push(packet);
-        } else {
-            std::cout << "FIFO Buffer full, dropping packet: " << packet.getPayload() << "\n";
         }
         break;
     case BufferManagementPolicy::LIFO:
         if (lifoBuffer.size() < BUFFER_CAPACITY) {
             lifoBuffer.push(packet);
-        } else {
-            std::cout << "LIFO Buffer full, dropping packet: " << packet.getPayload() << "\n";
         }
         break;
     case BufferManagementPolicy::RED:
-        // Simplified RED logic
         if (fifoBuffer.size() >= BUFFER_CAPACITY / 2 && rand() % 2 == 0) {
-            std::cout << "RED policy: dropping packet: " << packet.getPayload()<< "\n";
+            std::cout << "RED policy: dropping packet\n";
         } else {
             fifoBuffer.push(packet);
         }
@@ -83,91 +94,119 @@ void Router::sendPacketToBuffer(const Packet &packet) {
     }
 }
 
-
 Packet Router::retrievePacketFromBuffer() {
     std::lock_guard<std::mutex> lock(bufferMutex);
-    Packet packet(UT::PacketType::Control, &ipv4Address, tcpHeader, dataLinkHeader, "Control Packet", 0, 0, 1);
-    switch (bufferPolicy.method) {
-    case BufferManagementPolicy::FIFO:
-        if (!fifoBuffer.empty()) {
-            packet = fifoBuffer.front();
-            fifoBuffer.pop();
-        }
-        break;
-    case BufferManagementPolicy::LIFO:
-        if (!lifoBuffer.empty()) {
-            packet = lifoBuffer.top();
-            lifoBuffer.pop();
-        }
-        break;
-    default:
-        break;
+    if (bufferPolicy.method == BufferManagementPolicy::FIFO && !fifoBuffer.empty()) {
+        Packet packet = fifoBuffer.front();
+        fifoBuffer.pop();
+        return packet;
+    } else if (bufferPolicy.method == BufferManagementPolicy::LIFO && !lifoBuffer.empty()) {
+        Packet packet = lifoBuffer.top();
+        lifoBuffer.pop();
+        return packet;
     }
-    return packet;
+    throw std::runtime_error("Buffer is empty");
 }
 
-// Existing methods
-void Router::enableDhcp() {
+bool Router::connectRouter(int routerId, std::shared_ptr<Router> router) {
+    for (const auto& connectedRouter : connectedRouters) {
+        if (connectedRouter->getId() == routerId) {
+            return false; // Already connected
+        }
+    }
+    connectedRouters.push_back(router);
+    return true;
+}
+// void Router::enableDhcp(const std::string& ipRange, int asId) {
+//     this->isDhcpEnabled = true;
+//     this->dhcpIpRange = ipRange;
+//     this->dhcpAsId = asId;
+//     std::cout << "DHCP enabled on Router ID " << id
+//               << " with IP range " << ipRange
+//               << " for AS " << asId << "\n";
+// }
+std::vector<std::shared_ptr<Router>> Router::getConnectedRouters() const {
+    return connectedRouters;
+}
+void Router::connectUser(int pcId, std::shared_ptr<PC> pc) {
+    connectedPCs.push_back(pc);
+    std::cout << "PC with ID " << pcId << " connected to Router " << getId() << "\n";
+}
+
+const std::vector<std::shared_ptr<PC> > &Router::getConnectedPCs() const
+{
+    return connectedPCs;
+}
+
+std::vector<std::shared_ptr<Port>>Router::getPorts() const {
+    return m_ports;
+}
+void Router::addPort(std::shared_ptr<Port> port) {
+    m_ports.push_back(port);
+}
+// Send a packet from this router
+void Router::sendPacket(const Packet& packet) {
+    std::cout << "Router " << id << " sent packet with sequence number "
+              << packet.getSequenceNumber()
+              << " and payload: " << packet.getPayload()
+              << "\n";
+}
+void Router::enableDhcp(const string& ipRange, int asID) {
+    dhcpServer = std::make_unique<DHCP>(ipRange, asID);
     isDhcpEnabled = true;
 }
 
-void Router::setAsGatewayAS() {
-    isGatewayAS = true;
-}
 
-void Router::setAsGatewayUser() {
-    isGatewayUser = true;
-}
-
-bool Router::connectRouter(int port, Router *router) {
-    if (port >= 1 && port <= PORT_COUNT && connectedRouters.find(port) == connectedRouters.end()) {
-        connectedRouters[port] = router;
-        return true;
+std::string Router::processDhcpDiscover(int nodeId, const std::string& macAddress) {
+    if (!isDhcpEnabled) {
+        std::cout << "Router " << id << " is not DHCP-enabled.\n";
+        return "";
     }
-    return false;
-}
 
-bool Router::connectUser(int port, Node *user) {
-    if (port >= 1 && port <= PORT_COUNT) {
-        connectedUsers[port].push_back(user);
-        return true;
-    }
-    return false;
-}
-
-void Router::processBuffer() {
-    while (true) {
-        Packet packet = retrievePacketFromBuffer();
-        if (!packet.getPayload().empty()) {
-            std::cout << "Processing packet: " << packet.getPayload() << "\n";
-        }
-    }
-}
-void Router::sendPacket(const Packet& packet) {
-    std::lock_guard<std::mutex> lock(bufferMutex);
-    if (buffer.size() < BUFFER_CAPACITY) {
-        buffer.push(packet);
+    std::string assignedIP = dhcpServer->assignIP(nodeId, macAddress);
+    if (!assignedIP.empty()) {
+        std::cout << "Router " << id << " assigned IP: " << assignedIP
+                  << " to Node " << nodeId << " via DHCP.\n";
     } else {
-        // Buffer is full, handle packet dropping
-        if (packet.getIsControlPacket()) {
-            Packet droppedPacket = buffer.back();
-            buffer.pop();
-            droppedPacket.setDropped(true);
-            buffer.push(packet);
-        } else {
-            // Drop the packet
-            Packet droppedPacket = packet;
-            droppedPacket.setDropped(true);
-            std::cout << "Packet dropped: " << droppedPacket.getPayload() << std::endl;
-        }
+        std::cout << "Router " << id << " failed to assign IP to Node " << nodeId << "\n";
+    }
+
+    return assignedIP;
+}
+void Router::saveDhcpAllocations() {
+    if (isDhcpEnabled && dhcpServer) {
+        dhcpServer->saveAllocationsToFile();
     }
 }
 
 
-int Router::getId() const {
-    return id;
+
+void Router::requestIP(shared_ptr<Router> router) {
+    if (!ipAddress.empty()) {
+        cout << "Node " << routerId << " already has IP: " << ipAddress << "\n";
+        return;
+    }
+
+    string assignedIP = router->processDhcpDiscover(routerId, macAddress);
+    if (!assignedIP.empty()) {
+        setIPAddress(assignedIP);  // Ensure the IP is set correctly
+        cout << "Node " << routerId << " assigned IP: " << assignedIP << " via DHCP.\n";
+    } else {
+        cout << "Failed to assign IP to Node " << routerId << "\n";
+    }
 }
 
-std::string Router::getIpAddress() const {
-    return ipAddress;
+void Router::handleIPRequest(std::shared_ptr<Node> node) {
+    if (!node->getIPAddress().empty()) {
+        std::cout << "Node " << node->getId() << " already has IP: " << node->getIPAddress() << "\n";
+        return;
+    }
+
+    std::string assignedIP = processDhcpDiscover(node->getId(), node->getMacAddress());
+    if (!assignedIP.empty()) {
+        node->setIPAddress(assignedIP);
+        std::cout << "Node " << node->getId() << " assigned IP: " << assignedIP << " via DHCP.\n";
+    } else {
+        std::cout << "Failed to assign IP to Node " << node->getId() << "\n";
+    }
 }
